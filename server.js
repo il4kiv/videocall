@@ -57,6 +57,7 @@ io.on("connection", (socket) => {
   // Handle user disconnect
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);
+
     // Remove user from rooms
     for (const room in rooms) {
       rooms[room] = rooms[room].filter(id => id !== socket.id);
@@ -64,6 +65,8 @@ io.on("connection", (socket) => {
         delete rooms[room];
       }
     }
+
+    console.log(`Updated rooms after disconnection:`, rooms);
   });
 });
 
