@@ -281,10 +281,11 @@
         peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       });
 
-      // Handle user left the room
+      // Handle user leaving the room
       socket.on("user_left", ({ message }) => {
         alert(message);
-        location.reload(); // Reload the page when the other user leaves
+        disconnectRoom(roomId, roomContainer, videoLayout);
+        location.reload(); // Reload the page after handling the disconnection
       });
 
       // Send offer if first user in room
@@ -311,7 +312,11 @@
       };
 
       // Disconnect Logic
-      disconnectButton.onclick = () => disconnectRoom(roomId, roomContainer, videoLayout);
+      disconnectButton.onclick = () => {
+        socket.emit("disconnect");
+        disconnectRoom(roomId, roomContainer, videoLayout);
+        location.reload(); // Reload after manual disconnection
+      };
 
       // Update UI for fullscreen
       roomContainer.style.display = "none";
