@@ -18,27 +18,17 @@
       align-items: center;
       width: 100%;
       height: 100vh;
-      transition: all 0.5s ease;
     }
     .window {
       background: white;
       border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 8px #0000001a;
       width: 30%;
       height: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      transition: all 0.5s ease;
-    }
-    .window.fullscreen {
-      width: 100%;
-      height: 100vh;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1000;
     }
     .video-container {
       display: flex;
@@ -87,33 +77,7 @@
       </div>
       <button id="connect1">Connect</button>
       <div class="controls" id="controls1" style="display: none;">
-        <button id="toggleCamera1">Turn Off Camera</button>
-        <button id="toggleMic1">Turn Off Mic</button>
         <button id="disconnect1">Disconnect</button>
-      </div>
-    </div>
-    <div id="window2" class="window">
-      <div class="video-container">
-        <video id="localVideo2" autoplay muted></video>
-        <video id="remoteVideo2" autoplay></video>
-      </div>
-      <button id="connect2">Connect</button>
-      <div class="controls" id="controls2" style="display: none;">
-        <button id="toggleCamera2">Turn Off Camera</button>
-        <button id="toggleMic2">Turn Off Mic</button>
-        <button id="disconnect2">Disconnect</button>
-      </div>
-    </div>
-    <div id="window3" class="window">
-      <div class="video-container">
-        <video id="localVideo3" autoplay muted></video>
-        <video id="remoteVideo3" autoplay></video>
-      </div>
-      <button id="connect3">Connect</button>
-      <div class="controls" id="controls3" style="display: none;">
-        <button id="toggleCamera3">Turn Off Camera</button>
-        <button id="toggleMic3">Turn Off Mic</button>
-        <button id="disconnect3">Disconnect</button>
       </div>
     </div>
   </div>
@@ -123,150 +87,83 @@
     const socket = io();
     const peers = {};
     const localStreams = {};
-    const connectedRooms = {};
-  
+
     async function connectToRoom(roomId, windowId) {
-      const connectButton = document.getElementById(`connect${windowId}`);
-      const controls = document.getElementById(`controls${windowId}`);
       const localVideo = document.getElementById(`localVideo${windowId}`);
       const remoteVideo = document.getElementById(`remoteVideo${windowId}`);
-      const windowElement = document.getElementById(`window${windowId}`);
-  
-      if (connectedRooms[roomId]) {
-        disconnectRoom(roomId, windowId);
-        return;
-      }
-  
-      // Get local media stream
+      const connectButton = document.getElementById(`connect${windowId}`);
+      const controls = document.getElementById(`controls${windowId}`);
+
+      if (peers[roomId]) return;
+
+      // Get local media
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = localStream;
       localStreams[roomId] = localStream;
-  
+
       const peerConnection = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
-  
+
       localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
-  
+
       peerConnection.ontrack = (event) => {
         remoteVideo.srcObject = event.streams[0];
       };
-  
+
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           socket.emit("candidate", { room: roomId, candidate: event.candidate });
         }
       };
-  
+
       socket.emit("join", { room: roomId });
-  
+
       socket.on("offer", async (offer) => {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         socket.emit("answer", { room: roomId, answer });
       });
-  
+
       socket.on("answer", (answer) => {
         peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
       });
-  
+
       socket.on("candidate", (candidate) => {
         peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       });
-  
+
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
       socket.emit("offer", { room: roomId, offer });
-  
+
       peers[roomId] = peerConnection;
-      connectedRooms[roomId] = true;
-  
-      // Update UI
+
       connectButton.style.display = "none";
       controls.style.display = "block";
-      windowElement.classList.add("fullscreen");
     }
-  
+
     function disconnectRoom(roomId, windowId) {
       const connectButton = document.getElementById(`connect${windowId}`);
       const controls = document.getElementById(`controls${windowId}`);
-      const windowElement = document.getElementById(`window${windowId}`);
-  
+
       if (peers[roomId]) {
         peers[roomId].close();
         delete peers[roomId];
       }
-  
+
       if (localStreams[roomId]) {
         localStreams[roomId].getTracks().forEach((track) => track.stop());
         delete localStreams[roomId];
       }
-  
-      delete connectedRooms[roomId];
-  
-      // Reset UI
+
       connectButton.style.display = "block";
       controls.style.display = "none";
-      windowElement.classList.remove("fullscreen");
     }
-  
-    function toggleTrack(roomId, type, buttonId) {
-      const stream = localStreams[roomId];
-      if (!stream) return;
-  
-      const track = stream.getTracks().find((t) => t.kind === type);
-      if (!track) return;
-  
-      track.enabled = !track.enabled; // Toggle track enabled state
-  
-      // Update button label
-      const button = document.getElementById(buttonId);
-      button.textContent = track.enabled
-        ? `Turn Off ${type === "video" ? "Camera" : "Mic"}`
-        : `Turn On ${type === "video" ? "Camera" : "Mic"}`;
-    }
-  
-    // Event Listeners
-    document.getElementById("connect1").addEventListener("click", () => {
-      connectToRoom("room1", "1");
-    });
-    document.getElementById("connect2").addEventListener("click", () => {
-      connectToRoom("room2", "2");
-    });
-    document.getElementById("connect3").addEventListener("click", () => {
-      connectToRoom("room3", "3");
-    });
-  
-    document.getElementById("toggleCamera1").addEventListener("click", () => {
-      toggleTrack("room1", "video", "toggleCamera1");
-    });
-    document.getElementById("toggleMic1").addEventListener("click", () => {
-      toggleTrack("room1", "audio", "toggleMic1");
-    });
-    document.getElementById("disconnect1").addEventListener("click", () => {
-      disconnectRoom("room1", "1");
-    });
-  
-    document.getElementById("toggleCamera2").addEventListener("click", () => {
-      toggleTrack("room2", "video", "toggleCamera2");
-    });
-    document.getElementById("toggleMic2").addEventListener("click", () => {
-      toggleTrack("room2", "audio", "toggleMic2");
-    });
-    document.getElementById("disconnect2").addEventListener("click", () => {
-      disconnectRoom("room2", "2");
-    });
-  
-    document.getElementById("toggleCamera3").addEventListener("click", () => {
-      toggleTrack("room3", "video", "toggleCamera3");
-    });
-    document.getElementById("toggleMic3").addEventListener("click", () => {
-      toggleTrack("room3", "audio", "toggleMic3");
-    });
-    document.getElementById("disconnect3").addEventListener("click", () => {
-      disconnectRoom("room3", "3");
-    });
-  </script>  
+
+    document.getElementById("connect1").addEventListener("click", () => connectToRoom("room1", "1"));
+    document.getElementById("disconnect1").addEventListener("click", () => disconnectRoom("room1", "1"));
+  </script>
 </body>
 </html>

@@ -1,38 +1,53 @@
 const express = require("express");
-const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
+const http = require("http");
+const { Server } = require("socket.io");
 
-// Serve static files from the "public" directory
+// Initialize Express app
+const app = express();
+
+// Serve static files from the 'public' directory
 app.use(express.static("public"));
 
-io.on("connection", (socket) => {
-  console.log("A user connected");
+// Create HTTP server and integrate Socket.IO
+const server = http.createServer(app);
+const io = new Server(server);
 
-  socket.on("join", (room) => {
+// WebRTC signaling logic
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+
+  // Handle room joining
+  socket.on("join", ({ room }) => {
+    console.log(`User ${socket.id} joined room ${room}`);
     socket.join(room);
-    console.log(`User joined room: ${room}`);
   });
 
+  // Handle WebRTC offer
   socket.on("offer", ({ room, offer }) => {
+    console.log(`Received offer for room ${room}`);
     socket.to(room).emit("offer", offer);
   });
 
+  // Handle WebRTC answer
   socket.on("answer", ({ room, answer }) => {
+    console.log(`Received answer for room ${room}`);
     socket.to(room).emit("answer", answer);
   });
 
+  // Handle ICE candidates
   socket.on("candidate", ({ room, candidate }) => {
+    console.log(`Received ICE candidate for room ${room}`);
     socket.to(room).emit("candidate", candidate);
   });
 
+  // Handle user disconnect
   socket.on("disconnect", () => {
-    console.log("A user disconnected");
+    console.log("A user disconnected:", socket.id);
   });
 });
 
-// Start server on dynamic Glitch port or 3000
+// Use the environment-provided port or default to 3000
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
