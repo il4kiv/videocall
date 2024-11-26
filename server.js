@@ -55,6 +55,25 @@ io.on("connection", (socket) => {
     socket.to(room).emit("candidate", candidate);
   });
 
+  // Handle user leaving manually
+  socket.on("leave", ({ room }) => {
+    console.log(`User ${socket.id} is leaving room ${room}`);
+
+    if (rooms[room]) {
+      rooms[room] = rooms[room].filter(id => id !== socket.id);
+      console.log(`User ${socket.id} left room ${room}. Remaining participants: ${rooms[room]}`);
+
+      // Notify remaining participants that someone has left
+      socket.to(room).emit("user_left", { message: "User left the Video Call" });
+
+      // If room is empty, delete the room
+      if (rooms[room].length === 0) {
+        delete rooms[room];
+        console.log(`Room ${room} is now empty and has been deleted.`);
+      }
+    }
+  });
+
   // Handle user disconnect
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);

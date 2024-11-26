@@ -313,7 +313,8 @@
 
       // Disconnect Logic
       disconnectButton.onclick = () => {
-        socket.emit("disconnect");
+        console.log(`User clicked disconnect for room ${roomId}`);
+        socket.emit("leave", { room: roomId }); // Notify the server that the user is leaving
         disconnectRoom(roomId, roomContainer, videoLayout);
         location.reload(); // Reload after manual disconnection
       };
