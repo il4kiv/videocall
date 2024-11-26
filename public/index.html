@@ -281,11 +281,10 @@
         peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       });
 
-      // Handle user left
+      // Handle user left the room
       socket.on("user_left", ({ message }) => {
-        console.log(message);
         alert(message);
-        disconnectRoom(roomId, roomContainer, videoLayout);
+        location.reload(); // Reload the page when the other user leaves
       });
 
       // Send offer if first user in room

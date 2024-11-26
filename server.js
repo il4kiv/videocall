@@ -66,7 +66,7 @@ io.on("connection", (socket) => {
         console.log(`User ${socket.id} left room ${room}. Remaining participants: ${rooms[room]}`);
 
         // Notify remaining participants that someone has left
-        socket.to(room).emit("user_left", { message: "A user has left the room." });
+        socket.to(room).emit("user_left", { message: "User left the Video Call" });
 
         // If room is empty, delete the room
         if (rooms[room].length === 0) {
