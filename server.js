@@ -12,14 +12,28 @@ app.use(express.static("public"));
 const server = http.createServer(app);
 const io = new Server(server);
 
-// WebRTC signaling logic
+// WebRTC signaling logic and room tracking
+const rooms = {};
+
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
   // Handle room joining
   socket.on("join", ({ room }) => {
-    console.log(`User ${socket.id} joined room ${room}`);
+    if (!rooms[room]) {
+      rooms[room] = [];
+    }
+
+    // Limit room to 2 participants
+    if (rooms[room].length >= 2) {
+      socket.emit("room_full", { message: "The room is full, two participants are already connected." });
+      return;
+    }
+
+    // Add socket to room and notify others
+    rooms[room].push(socket.id);
     socket.join(room);
+    console.log(`User ${socket.id} joined room ${room}`);
   });
 
   // Handle WebRTC offer
@@ -43,6 +57,13 @@ io.on("connection", (socket) => {
   // Handle user disconnect
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);
+    // Remove user from rooms
+    for (const room in rooms) {
+      rooms[room] = rooms[room].filter(id => id !== socket.id);
+      if (rooms[room].length === 0) {
+        delete rooms[room];
+      }
+    }
   });
 });
 
