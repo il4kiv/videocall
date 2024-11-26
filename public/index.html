@@ -197,6 +197,7 @@
   const socket = io();
   const peers = {};
   const localStreams = {};
+  let isRoomFull = false;  // Add a variable to keep track of the room full state
 
   async function connectToRoom(roomId) {
     console.log(`Attempting to connect to room: ${roomId}`);
@@ -222,7 +223,18 @@
     // Handle full room message from server
     socket.on("room_full", ({ message }) => {
       alert(message);
+      isRoomFull = true;  // Set the room as full if the server indicates it
     });
+
+    // Wait briefly to allow for the room_full event to be received before continuing
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Stop the connection if the room is full
+    if (isRoomFull) {
+      console.log("Room is full, aborting connection.");
+      isRoomFull = false;  // Reset the room full status for future attempts
+      return;
+    }
 
     // Get local media stream
     try {
