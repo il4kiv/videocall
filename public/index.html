@@ -181,7 +181,7 @@
       localStreams[roomId] = localStream;
 
       const peerConnection = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }], // STUN server for NAT traversal
       });
 
       localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
@@ -219,20 +219,20 @@
 
       peers[roomId] = peerConnection;
 
-      // Toggle Camera
+      // Toggle Camera Logic
       let cameraOn = true;
       toggleCameraButton.onclick = () => {
         const videoTrack = localStream.getVideoTracks()[0];
         videoTrack.enabled = !videoTrack.enabled;
-        cameraIcon.src = videoTrack.enabled ? "camera.png" : "camera.png";
+        cameraIcon.src = videoTrack.enabled ? "assets/camera-on.png" : "assets/camera-off.png";
       };
 
-      // Toggle Microphone
+      // Toggle Microphone Logic
       let micOn = true;
       toggleMicButton.onclick = () => {
         const audioTrack = localStream.getAudioTracks()[0];
         audioTrack.enabled = !audioTrack.enabled;
-        micIcon.src = audioTrack.enabled ? "microphone.png" : "microphone.png";
+        micIcon.src = audioTrack.enabled ? "assets/mic-on.png" : "assets/mic-off.png";
       };
 
       // Update UI for fullscreen
@@ -263,7 +263,7 @@
       roomContainer.style.display = "flex";
     }
 
-    // Event Listeners
+    // Event Listeners for Room Buttons
     document.getElementById("connect1").addEventListener("click", () => connectToRoom("room1"));
     document.getElementById("connect2").addEventListener("click", () => connectToRoom("room2"));
     document.getElementById("connect3").addEventListener("click", () => connectToRoom("room3"));
