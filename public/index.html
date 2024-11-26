@@ -24,20 +24,12 @@
       background: #222;
       border-radius: 8px;
       box-shadow: 0 4px 8px #0000001a;
-      width: 20%; /* Dynamically calculated size */
-      padding-top: calc(20% * 2 / 3); /* Maintain 3:2 aspect ratio */
+      width: 20%;
+      padding-top: calc(20% * 2 / 3);
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
-    }
-    .window span {
-      position: absolute;
-      top: 5%;
-      left: 5%;
-      font-size: 18px;
-      font-weight: bold;
-      color: white;
     }
     .plus-button {
       width: 60px;
@@ -59,12 +51,6 @@
       left: 50%;
       transform: translate(-50%, -50%);
     }
-    .plus-button:hover {
-      background-color: #2c3e9e;
-    }
-    .plus-button:active {
-      background-color: #1b256e;
-    }
     .fullscreen {
       display: flex;
       justify-content: center;
@@ -76,20 +62,20 @@
       background-color: #000;
     }
     .video-container {
-      width: 48%; /* Slightly less than half for spacing */
-      height: calc((48% * 2) / 3); /* 3:2 aspect ratio */
+      width: 48%;
+      height: calc((48% * 2) / 3);
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #222; /* Darker background for the video container */
+      background: #222;
       border-radius: 10px;
       border: 2px solid #3f51b5;
-      overflow: hidden; /* To ensure videos don't spill out */
+      overflow: hidden;
     }
     video {
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Ensure video fills the container */
+      object-fit: cover;
       border-radius: 10px;
     }
     .controls {
@@ -162,7 +148,7 @@
     const socket = io();
     const peers = {};
     const localStreams = {};
-  
+
     async function connectToRoom(roomId) {
       const roomContainer = document.getElementById("roomContainer");
       const videoLayout = document.getElementById("videoLayout");
@@ -173,119 +159,113 @@
       const toggleMicButton = document.getElementById("toggleMic");
       const cameraIcon = document.getElementById("cameraIcon");
       const micIcon = document.getElementById("micIcon");
-  
+
       if (peers[roomId]) return; // Prevent duplicate connections
-  
-      // Get the local media stream (video & audio)
+
+      // Get local media stream
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = localStream;
       localStreams[roomId] = localStream;
-  
-      // Create a new RTCPeerConnection instance for this user
+
+      // Create new RTCPeerConnection for this user
       const peerConnection = new RTCPeerConnection({
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
-  
-      // Add local stream tracks to the peer connection
+
+      // Add local stream tracks to peer connection
       localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
-  
-      // Handle incoming media streams (remote user stream)
+
+      // Handle incoming media stream (remote stream)
       peerConnection.ontrack = (event) => {
-        console.log('Received remote stream', event);
+        console.log('Received remote stream:', event);
         remoteVideo.srcObject = event.streams[0];
       };
-  
+
       // Handle ICE candidates
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log('Sending ICE candidate', event.candidate);
+          console.log('Sending ICE candidate:', event.candidate);
           socket.emit("candidate", { room: roomId, candidate: event.candidate });
         }
       };
-  
-      // Join the room
+
+      // Join room
       socket.emit("join", { room: roomId });
-  
-      // Handle the signaling process (offer/answer exchange)
+
+      // Handle signaling: offer
       socket.on("offer", async (offer) => {
         console.log(`Received offer for room ${roomId}`);
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-  
+
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
-        console.log('Sending answer to the server');
+        console.log('Sending answer to server');
         socket.emit("answer", { room: roomId, answer });
       });
-  
+
+      // Handle signaling: answer
       socket.on("answer", (answer) => {
         console.log(`Received answer for room ${roomId}`);
         peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
       });
-  
+
+      // Handle signaling: ICE candidates
       socket.on("candidate", (candidate) => {
         console.log('Received ICE candidate', candidate);
         peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       });
-  
-      // Send an offer if this is the first user joining the room
+
+      // Send an offer if this is the first user to join the room
       if (!peers[roomId]) {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        console.log('Sending offer to the server');
+        console.log('Sending offer to server');
         socket.emit("offer", { room: roomId, offer });
       }
-  
+
       peers[roomId] = peerConnection;
-  
+
       // Toggle Camera Logic
-      let cameraOn = true;
       toggleCameraButton.onclick = () => {
         const videoTrack = localStream.getVideoTracks()[0];
         videoTrack.enabled = !videoTrack.enabled;
         cameraIcon.src = videoTrack.enabled ? "assets/camera-on.png" : "assets/camera-off.png";
       };
-  
+
       // Toggle Microphone Logic
-      let micOn = true;
       toggleMicButton.onclick = () => {
         const audioTrack = localStream.getAudioTracks()[0];
         audioTrack.enabled = !audioTrack.enabled;
         micIcon.src = audioTrack.enabled ? "assets/mic-on.png" : "assets/mic-off.png";
       };
-  
-      // Update UI for fullscreen
-      roomContainer.style.display = "none";
-      videoLayout.style.display = "flex";
-  
+
       // Disconnect logic
       disconnectButton.onclick = () => disconnectRoom(roomId, roomContainer, videoLayout);
     }
-  
+
     function disconnectRoom(roomId, roomContainer, videoLayout) {
       if (peers[roomId]) {
         peers[roomId].close();
         delete peers[roomId];
       }
-  
+
       if (localStreams[roomId]) {
         localStreams[roomId].getTracks().forEach((track) => track.stop());
         delete localStreams[roomId];
       }
-  
-      const localVideo = document.getElementById("localVideo");
-      const remoteVideo = document.getElementById("remoteVideo");
-      localVideo.srcObject = null;
-      remoteVideo.srcObject = null;
-  
-      // Reset UI to show the room selection screen
+
+      // Reset UI
+      document.getElementById("localVideo").srcObject = null;
+      document.getElementById("remoteVideo").srcObject = null;
+
       videoLayout.style.display = "none";
       roomContainer.style.display = "flex";
     }
-  
+
     // Event Listeners for Room Buttons
     document.getElementById("connect1").addEventListener("click", () => connectToRoom("room1"));
     document.getElementById("connect2").addEventListener("click", () => connectToRoom("room2"));
     document.getElementById("connect3").addEventListener("click", () => connectToRoom("room3"));
-  </script>  
+  </script>
 </body>
 </html>
