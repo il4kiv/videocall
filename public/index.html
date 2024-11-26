@@ -162,7 +162,7 @@
     const socket = io();
     const peers = {};
     const localStreams = {};
-
+  
     async function connectToRoom(roomId) {
       const roomContainer = document.getElementById("roomContainer");
       const videoLayout = document.getElementById("videoLayout");
@@ -173,52 +173,61 @@
       const toggleMicButton = document.getElementById("toggleMic");
       const cameraIcon = document.getElementById("cameraIcon");
       const micIcon = document.getElementById("micIcon");
-
+  
       if (peers[roomId]) return; // Prevent duplicate connections
-
+  
+      // Get the local media stream (video & audio)
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = localStream;
       localStreams[roomId] = localStream;
-
+  
+      // Create a new RTCPeerConnection instance for this user
       const peerConnection = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }], // STUN server for NAT traversal
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
-
+  
+      // Add local stream tracks to the peer connection
       localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
-
+  
+      // Handle incoming media streams (remote user stream)
       peerConnection.ontrack = (event) => {
         remoteVideo.srcObject = event.streams[0];
       };
-
+  
+      // Handle ICE candidates
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           socket.emit("candidate", { room: roomId, candidate: event.candidate });
         }
       };
-
+  
+      // Join the room
       socket.emit("join", { room: roomId });
-
+  
+      // Handle the signaling process (offer/answer exchange)
       socket.on("offer", async (offer) => {
+        console.log(`Received offer for room ${roomId}`);
         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         socket.emit("answer", { room: roomId, answer });
       });
-
+  
       socket.on("answer", (answer) => {
         peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
       });
-
+  
       socket.on("candidate", (candidate) => {
         peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       });
-
+  
+      // Send an offer if this is the first user joining the room
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
       socket.emit("offer", { room: roomId, offer });
-
+  
       peers[roomId] = peerConnection;
-
+  
       // Toggle Camera Logic
       let cameraOn = true;
       toggleCameraButton.onclick = () => {
@@ -226,7 +235,7 @@
         videoTrack.enabled = !videoTrack.enabled;
         cameraIcon.src = videoTrack.enabled ? "assets/camera-on.png" : "assets/camera-off.png";
       };
-
+  
       // Toggle Microphone Logic
       let micOn = true;
       toggleMicButton.onclick = () => {
@@ -234,39 +243,40 @@
         audioTrack.enabled = !audioTrack.enabled;
         micIcon.src = audioTrack.enabled ? "assets/mic-on.png" : "assets/mic-off.png";
       };
-
+  
       // Update UI for fullscreen
       roomContainer.style.display = "none";
       videoLayout.style.display = "flex";
-
+  
+      // Disconnect logic
       disconnectButton.onclick = () => disconnectRoom(roomId, roomContainer, videoLayout);
     }
-
+  
     function disconnectRoom(roomId, roomContainer, videoLayout) {
       if (peers[roomId]) {
         peers[roomId].close();
         delete peers[roomId];
       }
-
+  
       if (localStreams[roomId]) {
         localStreams[roomId].getTracks().forEach((track) => track.stop());
         delete localStreams[roomId];
       }
-
+  
       const localVideo = document.getElementById("localVideo");
       const remoteVideo = document.getElementById("remoteVideo");
       localVideo.srcObject = null;
       remoteVideo.srcObject = null;
-
+  
       // Reset UI to show the room selection screen
       videoLayout.style.display = "none";
       roomContainer.style.display = "flex";
     }
-
+  
     // Event Listeners for Room Buttons
     document.getElementById("connect1").addEventListener("click", () => connectToRoom("room1"));
     document.getElementById("connect2").addEventListener("click", () => connectToRoom("room2"));
     document.getElementById("connect3").addEventListener("click", () => connectToRoom("room3"));
-  </script>
+  </script>  
 </body>
 </html>
