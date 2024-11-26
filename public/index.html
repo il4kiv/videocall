@@ -197,7 +197,7 @@
   const socket = io();
   const peers = {};
   const localStreams = {};
-  let isRoomFull = false;  // Add a variable to keep track of the room full state
+  let isRoomFull = false;
 
   async function connectToRoom(roomId) {
     console.log(`Attempting to connect to room: ${roomId}`);
@@ -205,7 +205,7 @@
     const videoLayout = document.getElementById("videoLayout");
     const localVideo = document.getElementById("localVideo");
     const remoteVideo = document.getElementById("remoteVideo");
-    const disconnectButton = document.getElementById("disconnectImg"); // Update for image button
+    const disconnectButton = document.getElementById("disconnectImg");
     const toggleCameraButton = document.getElementById("toggleCamera");
     const toggleMicButton = document.getElementById("toggleMic");
     const cameraIcon = document.getElementById("cameraIcon");
@@ -223,7 +223,7 @@
     // Handle full room message from server
     socket.on("room_full", ({ message }) => {
       alert(message);
-      isRoomFull = true;  // Set the room as full if the server indicates it
+      isRoomFull = true;
     });
 
     // Wait briefly to allow for the room_full event to be received before continuing
@@ -232,7 +232,7 @@
     // Stop the connection if the room is full
     if (isRoomFull) {
       console.log("Room is full, aborting connection.");
-      isRoomFull = false;  // Reset the room full status for future attempts
+      isRoomFull = false;
       return;
     }
 
@@ -279,6 +279,13 @@
       // Handle incoming ICE candidates
       socket.on("candidate", (candidate) => {
         peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      });
+
+      // Handle user left
+      socket.on("user_left", ({ message }) => {
+        console.log(message);
+        alert(message);
+        disconnectRoom(roomId, roomContainer, videoLayout);
       });
 
       // Send offer if first user in room

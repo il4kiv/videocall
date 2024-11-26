@@ -34,6 +34,7 @@ io.on("connection", (socket) => {
     rooms[room].push(socket.id);
     socket.join(room);
     console.log(`User ${socket.id} joined room ${room}`);
+    console.log(`Current participants in room ${room}: ${rooms[room]}`);
   });
 
   // Handle WebRTC offer
@@ -60,13 +61,20 @@ io.on("connection", (socket) => {
 
     // Remove user from rooms
     for (const room in rooms) {
-      rooms[room] = rooms[room].filter(id => id !== socket.id);
-      if (rooms[room].length === 0) {
-        delete rooms[room];
+      if (rooms[room].includes(socket.id)) {
+        rooms[room] = rooms[room].filter(id => id !== socket.id);
+        console.log(`User ${socket.id} left room ${room}. Remaining participants: ${rooms[room]}`);
+
+        // Notify remaining participants that someone has left
+        socket.to(room).emit("user_left", { message: "A user has left the room." });
+
+        // If room is empty, delete the room
+        if (rooms[room].length === 0) {
+          delete rooms[room];
+          console.log(`Room ${room} is now empty and has been deleted.`);
+        }
       }
     }
-
-    console.log(`Updated rooms after disconnection:`, rooms);
   });
 });
 
