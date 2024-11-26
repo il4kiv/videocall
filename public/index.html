@@ -4,72 +4,83 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SPMM Video Chat</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Poppins', Arial, sans-serif;
-      background: linear-gradient(to bottom right, #2e3b4e, #1a1a2e);
+      font-family: 'Nunito', Arial, sans-serif;
+      background: linear-gradient(135deg, #2E0249, #570A57);
       margin: 0;
       padding: 0;
       text-align: center;
       color: #ffffff;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     #roomContainer {
       display: flex;
-      justify-content: space-around;
+      justify-content: center;
       align-items: center;
+      gap: 40px;
+      flex-wrap: wrap;
       width: 100%;
       height: 100vh;
-      padding-top: 50px;
       transition: all 0.5s ease;
+      padding: 40px;
+      box-sizing: border-box;
     }
 
     .window {
-      background: #333;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
       border-radius: 15px;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
       width: 22%;
-      height: calc(22% * 2 / 3); /* Maintain aspect ratio */
+      height: calc(22% * 2 / 3);
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
-      transition: transform 0.3s;
+      transition: transform 0.3s, box-shadow 0.3s;
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
     .window:hover {
       transform: translateY(-10px);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
     }
 
     .window span {
       position: absolute;
       bottom: 5%;
-      font-size: 16px;
+      font-size: 18px;
       font-weight: bold;
-      color: #999;
+      color: #ffffff;
+      opacity: 0.9;
     }
 
     .plus-button {
-      width: 60px;
-      height: 60px;
+      width: 70px;
+      height: 70px;
       display: flex;
       justify-content: center;
       align-items: center;
       border-radius: 50%;
-      background-color: #3f51b5;
+      background: linear-gradient(135deg, #D61C4E, #892CDC);
       color: white;
-      font-size: 30px;
+      font-size: 36px;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.3s;
       border: none;
       outline: none;
-      box-shadow: 0 4px 10px rgba(63, 81, 181, 0.5);
+      box-shadow: 0 8px 20px rgba(217, 50, 89, 0.5);
     }
 
     .plus-button:hover {
-      background-color: #5c6bc0;
+      background: linear-gradient(135deg, #E85D75, #9D4EDD);
       transform: scale(1.1);
     }
 
@@ -77,83 +88,102 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      gap: 40px;
+      flex-wrap: wrap;
       width: 100%;
       height: 100vh;
-      padding: 0;
-      gap: 20px;
-      background-color: #1a1a2e;
+      padding: 40px;
+      box-sizing: border-box;
+      background: linear-gradient(135deg, #2E0249, #570A57);
     }
 
     .video-container {
-      width: 48%;
-      height: calc((48% * 2) / 3);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: #222;
-      border-radius: 15px;
-      border: 2px solid #3f51b5;
+      position: relative;
+      width: calc(66.66vh); /* Use height to determine width for a 3:2 aspect ratio */
+      height: calc(66.66vh * 2 / 3); /* Calculate the height accordingly */
+      max-width: 800px;
+      max-height: 533px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
       overflow: hidden;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
     }
 
     video {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      border-radius: 15px;
+      border-radius: 20px;
     }
 
     .controls {
-      position: absolute;
+      position: fixed;
       bottom: 20px;
+      width: 100%;
       display: flex;
-      gap: 15px;
+      justify-content: center;
+      gap: 30px;
     }
 
     .icon-button {
-      width: 50px;
-      height: 50px;
-      background-color: #fff;
+      width: 60px;
+      height: 60px;
+      background-color: #ffffff;
       border-radius: 50%;
       display: flex;
       justify-content: center;
       align-items: center;
       cursor: pointer;
       border: 2px solid #3f51b5;
-      transition: background-color 0.3s, transform 0.3s;
-      box-shadow: 0 4px 10px rgba(63, 81, 181, 0.5);
+      transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 4px 15px rgba(63, 81, 181, 0.5);
     }
 
     .icon-button img {
-      width: 24px;
-      height: 24px;
+      width: 30px;
+      height: 30px;
     }
 
     .icon-button:hover {
       background-color: #5c6bc0;
       transform: scale(1.1);
+      box-shadow: 0 10px 20px rgba(63, 81, 181, 0.8);
+    }
+
+    #disconnectImgContainer {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: #ffffff; /* Make the background white to match other buttons */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s;
+      box-shadow: 0 8px 20px rgba(255, 99, 71, 0.6);
+    }
+
+    #disconnectImgContainer:hover {
+      transform: scale(1.1);
+      box-shadow: 0 12px 30px rgba(255, 99, 71, 0.8);
     }
 
     #disconnectImg {
-      width: 60px;
-      height: 60px;
-      cursor: pointer;
-      transition: transform 0.3s ease, box-shadow 0.3s;
-      box-shadow: 0 4px 10px rgba(255, 99, 71, 0.5);
-    }
-
-    #disconnectImg:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 15px rgba(255, 99, 71, 0.7);
+      width: 30px;
+      height: 30px;
     }
 
     h1 {
-      font-size: 36px;
+      font-size: 42px;
       font-weight: bold;
-      margin-top: 20px;
+      margin-top: 30px;
       color: #ffffff;
-      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
+      text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.4);
     }
   </style>
 </head>
@@ -161,15 +191,15 @@
   <h1>SPMM Video Chat</h1>
   <div id="roomContainer">
     <div id="window1" class="window">
-      <span>#1</span>
+      <span>Room #1</span>
       <button class="plus-button" id="connect1">+</button>
     </div>
     <div id="window2" class="window">
-      <span>#2</span>
+      <span>Room #2</span>
       <button class="plus-button" id="connect2">+</button>
     </div>
     <div id="window3" class="window">
-      <span>#3</span>
+      <span>Room #3</span>
       <button class="plus-button" id="connect3">+</button>
     </div>
   </div>
@@ -188,7 +218,9 @@
       <div class="icon-button" id="toggleMic">
         <img src="assets/mic-on.png" id="micIcon" alt="Toggle Mic">
       </div>
-      <img src="assets/disconnect.png" id="disconnectImg" alt="Disconnect">
+      <div id="disconnectImgContainer">
+        <img src="assets/disconnect.png" id="disconnectImg" alt="Disconnect">
+      </div>
     </div>
   </div>
 
