@@ -21,16 +21,49 @@
       transition: all 0.5s ease;
     }
     .window {
-      background: white;
+      background: #222;
       border-radius: 8px;
       box-shadow: 0 4px 8px #0000001a;
-      width: 25%;
-      height: auto;
+      width: 20%; /* Dynamically calculated size */
+      padding-top: calc(20% * 2 / 3); /* Maintain 3:2 aspect ratio */
+      position: relative;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
-      transition: all 0.5s ease;
+      align-items: center;
+    }
+    .window span {
+      position: absolute;
+      top: 5%;
+      left: 5%;
+      font-size: 18px;
+      font-weight: bold;
+      color: white;
+    }
+    .plus-button {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      background-color: #3f51b5;
+      color: white;
+      font-size: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      border: none;
+      outline: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .plus-button:hover {
+      background-color: #2c3e9e;
+    }
+    .plus-button:active {
+      background-color: #1b256e;
     }
     .fullscreen {
       display: flex;
@@ -59,22 +92,33 @@
       object-fit: cover; /* Ensure video fills the container */
       border-radius: 10px;
     }
-    button {
-      margin: 5px;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 5px;
-      background-color: #3f51b5;
-      color: white;
-      font-size: 14px;
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      display: flex;
+      gap: 15px;
+    }
+    .icon-button {
+      width: 50px;
+      height: 50px;
+      background-color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       cursor: pointer;
+      border: 2px solid #3f51b5;
       transition: background-color 0.3s;
     }
-    button:hover {
-      background-color: #2c3e9e;
+    .icon-button img {
+      width: 24px;
+      height: 24px;
     }
-    button:active {
-      background-color: #1b256e;
+    .icon-button:hover {
+      background-color: #3f51b5;
+    }
+    .icon-button img.off {
+      filter: grayscale(100%);
     }
   </style>
 </head>
@@ -82,19 +126,16 @@
   <h1>Multi-User Video Chat</h1>
   <div id="roomContainer">
     <div id="window1" class="window">
-      <div class="controls">
-        <button id="connect1">Connect to Room 1</button>
-      </div>
+      <span>#1</span>
+      <button class="plus-button" id="connect1">+</button>
     </div>
     <div id="window2" class="window">
-      <div class="controls">
-        <button id="connect2">Connect to Room 2</button>
-      </div>
+      <span>#2</span>
+      <button class="plus-button" id="connect2">+</button>
     </div>
     <div id="window3" class="window">
-      <div class="controls">
-        <button id="connect3">Connect to Room 3</button>
-      </div>
+      <span>#3</span>
+      <button class="plus-button" id="connect3">+</button>
     </div>
   </div>
 
@@ -105,7 +146,15 @@
     <div class="video-container">
       <video id="remoteVideo" autoplay></video>
     </div>
-    <button id="disconnect" style="position: absolute; top: 20px; right: 20px;">Disconnect</button>
+    <div class="controls">
+      <div class="icon-button" id="toggleCamera">
+        <img src="assets/camera-on.png" id="cameraIcon" alt="Toggle Camera">
+      </div>
+      <div class="icon-button" id="toggleMic">
+        <img src="assets/mic-on.png" id="micIcon" alt="Toggle Mic">
+      </div>
+      <button id="disconnect">Disconnect</button>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -120,6 +169,10 @@
       const localVideo = document.getElementById("localVideo");
       const remoteVideo = document.getElementById("remoteVideo");
       const disconnectButton = document.getElementById("disconnect");
+      const toggleCameraButton = document.getElementById("toggleCamera");
+      const toggleMicButton = document.getElementById("toggleMic");
+      const cameraIcon = document.getElementById("cameraIcon");
+      const micIcon = document.getElementById("micIcon");
 
       if (peers[roomId]) return; // Prevent duplicate connections
 
@@ -165,6 +218,22 @@
       socket.emit("offer", { room: roomId, offer });
 
       peers[roomId] = peerConnection;
+
+      // Toggle Camera
+      let cameraOn = true;
+      toggleCameraButton.onclick = () => {
+        const videoTrack = localStream.getVideoTracks()[0];
+        videoTrack.enabled = !videoTrack.enabled;
+        cameraIcon.src = videoTrack.enabled ? "camera.png" : "camera.png";
+      };
+
+      // Toggle Microphone
+      let micOn = true;
+      toggleMicButton.onclick = () => {
+        const audioTrack = localStream.getAudioTracks()[0];
+        audioTrack.enabled = !audioTrack.enabled;
+        micIcon.src = audioTrack.enabled ? "microphone.png" : "microphone.png";
+      };
 
       // Update UI for fullscreen
       roomContainer.style.display = "none";
