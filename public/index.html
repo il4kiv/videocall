@@ -12,38 +12,52 @@
       padding: 0;
       text-align: center;
     }
-    .container {
+    #roomContainer {
       display: flex;
       justify-content: space-around;
       align-items: center;
       width: 100%;
       height: 100vh;
+      transition: all 0.5s ease;
     }
     .window {
       background: white;
       border-radius: 8px;
       box-shadow: 0 4px 8px #0000001a;
-      width: 30%;
+      width: 25%;
       height: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      transition: all 0.5s ease;
     }
-    .video-container {
+    .fullscreen {
       display: flex;
-      flex-direction: row;
       justify-content: center;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
+      width: 100%;
+      height: 100vh;
+      padding: 0;
+      gap: 0;
+      background-color: #000;
+    }
+    .video-container {
+      width: 48%; /* Slightly less than half for spacing */
+      height: calc((48% * 2) / 3); /* 3:2 aspect ratio */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #222; /* Darker background for the video container */
+      border-radius: 10px;
+      border: 2px solid #3f51b5;
+      overflow: hidden; /* To ensure videos don't spill out */
     }
     video {
-      width: 45%;
-      height: auto;
-      background: black;
-      border-radius: 5px;
-      border: 2px solid #3f51b5;
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* Ensure video fills the container */
+      border-radius: 10px;
     }
     button {
       margin: 5px;
@@ -62,50 +76,36 @@
     button:active {
       background-color: #1b256e;
     }
-    .controls {
-      margin-top: 10px;
-    }
   </style>
 </head>
 <body>
   <h1>Multi-User Video Chat</h1>
-  <div class="container">
+  <div id="roomContainer">
     <div id="window1" class="window">
-      <div class="video-container">
-        <video id="localVideo1" autoplay muted></video>
-        <video id="remoteVideo1" autoplay></video>
-      </div>
-      <button id="connect1">Connect to Room 1</button>
-      <div class="controls" id="controls1" style="display: none;">
-        <button id="toggleCamera1">Turn Off Camera</button>
-        <button id="toggleMic1">Turn Off Mic</button>
-        <button id="disconnect1">Disconnect</button>
+      <div class="controls">
+        <button id="connect1">Connect to Room 1</button>
       </div>
     </div>
     <div id="window2" class="window">
-      <div class="video-container">
-        <video id="localVideo2" autoplay muted></video>
-        <video id="remoteVideo2" autoplay></video>
-      </div>
-      <button id="connect2">Connect to Room 2</button>
-      <div class="controls" id="controls2" style="display: none;">
-        <button id="toggleCamera2">Turn Off Camera</button>
-        <button id="toggleMic2">Turn Off Mic</button>
-        <button id="disconnect2">Disconnect</button>
+      <div class="controls">
+        <button id="connect2">Connect to Room 2</button>
       </div>
     </div>
     <div id="window3" class="window">
-      <div class="video-container">
-        <video id="localVideo3" autoplay muted></video>
-        <video id="remoteVideo3" autoplay></video>
-      </div>
-      <button id="connect3">Connect to Room 3</button>
-      <div class="controls" id="controls3" style="display: none;">
-        <button id="toggleCamera3">Turn Off Camera</button>
-        <button id="toggleMic3">Turn Off Mic</button>
-        <button id="disconnect3">Disconnect</button>
+      <div class="controls">
+        <button id="connect3">Connect to Room 3</button>
       </div>
     </div>
+  </div>
+
+  <div id="videoLayout" style="display: none;" class="fullscreen">
+    <div class="video-container">
+      <video id="localVideo" autoplay muted></video>
+    </div>
+    <div class="video-container">
+      <video id="remoteVideo" autoplay></video>
+    </div>
+    <button id="disconnect" style="position: absolute; top: 20px; right: 20px;">Disconnect</button>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -114,13 +114,14 @@
     const peers = {};
     const localStreams = {};
 
-    async function connectToRoom(roomId, windowId) {
-      const localVideo = document.getElementById(`localVideo${windowId}`);
-      const remoteVideo = document.getElementById(`remoteVideo${windowId}`);
-      const connectButton = document.getElementById(`connect${windowId}`);
-      const controls = document.getElementById(`controls${windowId}`);
+    async function connectToRoom(roomId) {
+      const roomContainer = document.getElementById("roomContainer");
+      const videoLayout = document.getElementById("videoLayout");
+      const localVideo = document.getElementById("localVideo");
+      const remoteVideo = document.getElementById("remoteVideo");
+      const disconnectButton = document.getElementById("disconnect");
 
-      if (peers[roomId]) return;
+      if (peers[roomId]) return; // Prevent duplicate connections
 
       const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = localStream;
@@ -165,14 +166,14 @@
 
       peers[roomId] = peerConnection;
 
-      connectButton.style.display = "none";
-      controls.style.display = "block";
+      // Update UI for fullscreen
+      roomContainer.style.display = "none";
+      videoLayout.style.display = "flex";
+
+      disconnectButton.onclick = () => disconnectRoom(roomId, roomContainer, videoLayout);
     }
 
-    function disconnectRoom(roomId, windowId) {
-      const connectButton = document.getElementById(`connect${windowId}`);
-      const controls = document.getElementById(`controls${windowId}`);
-
+    function disconnectRoom(roomId, roomContainer, videoLayout) {
       if (peers[roomId]) {
         peers[roomId].close();
         delete peers[roomId];
@@ -183,17 +184,20 @@
         delete localStreams[roomId];
       }
 
-      connectButton.style.display = "block";
-      controls.style.display = "none";
+      const localVideo = document.getElementById("localVideo");
+      const remoteVideo = document.getElementById("remoteVideo");
+      localVideo.srcObject = null;
+      remoteVideo.srcObject = null;
+
+      // Reset UI to show the room selection screen
+      videoLayout.style.display = "none";
+      roomContainer.style.display = "flex";
     }
 
-    document.getElementById("connect1").addEventListener("click", () => connectToRoom("room1", "1"));
-    document.getElementById("connect2").addEventListener("click", () => connectToRoom("room2", "2"));
-    document.getElementById("connect3").addEventListener("click", () => connectToRoom("room3", "3"));
-
-    document.getElementById("disconnect1").addEventListener("click", () => disconnectRoom("room1", "1"));
-    document.getElementById("disconnect2").addEventListener("click", () => disconnectRoom("room2", "2"));
-    document.getElementById("disconnect3").addEventListener("click", () => disconnectRoom("room3", "3"));
+    // Event Listeners
+    document.getElementById("connect1").addEventListener("click", () => connectToRoom("room1"));
+    document.getElementById("connect2").addEventListener("click", () => connectToRoom("room2"));
+    document.getElementById("connect3").addEventListener("click", () => connectToRoom("room3"));
   </script>
 </body>
 </html>
